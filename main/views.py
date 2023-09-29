@@ -24,7 +24,7 @@ class VideoUploadView(View):
 		form = VideoForm(request.POST, request.FILES)
 		if form.is_valid():
 			form.save()
-			return JsonResponse({'message':'Video Successfully uploaded🥳🎉'}, status=200)
+			return redirect('video-list')
 		return JsonResponse({'message':'Invalid input❌'}, status=400)
 
 class VideoListView(View):
