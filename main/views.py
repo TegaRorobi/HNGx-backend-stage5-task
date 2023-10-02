@@ -9,10 +9,6 @@ from .models import Video
 
 # Create your views here.
 class VideoUploadView(View):
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		self.get.csrf_exempt = True
-		self.post.csrf_exempt = True 
 
 	@csrf_exempt
 	def get(self, request, *args, **kwargs):
