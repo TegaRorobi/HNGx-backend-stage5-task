@@ -12,6 +12,7 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 import os, tempfile
+import whisper
 
 
 class VideoViewSet(ModelViewSet):
@@ -23,9 +24,9 @@ class VideoViewSet(ModelViewSet):
 	serializer_class = VideoSerializer
 	parser_classes = FileUploadParser,
 
-	# def __init__(self, *args, **kwargs):
-	# 	super().__init__(*args, **kwargs)
-	# 	self.model = whisper.load_model("base")
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.model = whisper.load_model("base")
 
 	def clean(self, *filepaths):
 		for filepath in filepaths:
@@ -73,37 +74,33 @@ class VideoViewSet(ModelViewSet):
 
 			existing_video_data = video.video_file.read()
 
-			with tempfile.NamedTemporaryFile(delete=False) as existing_tempfile:
+			with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as existing_tempfile:
 				existing_tempfile.write(existing_video_data)
 				existing_tempfile_path = existing_tempfile.name
 				existing_clip = VideoFileClip(existing_tempfile_path)
 
-			with tempfile.NamedTemporaryFile(delete=False) as new_tempfile:
+			with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as new_tempfile:
 				new_tempfile.write(new_video_data)
 				new_tempfile_path = new_tempfile.name
 				new_clip = VideoFileClip(new_tempfile_path)
 
-			with tempfile.NamedTemporaryFile(delete=False) as final_tempfile:
+			with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as final_tempfile:
 				final_tempfile_path = final_tempfile.name
 				final_clip = concatenate_videoclips([existing_clip, new_clip])
 				final_clip.write_videofile(final_tempfile_path.name, codec='mp4')
 
-			'''
 			with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as audio_tempfile:
 				audio_clip = final_clip.audio
 				audio_clip.write_audiofile(audio_tempfile.name, codec='mp3')
 				audio_tempfile_path = audio_tempfile.name
-			'''
 
 			final_video_data = open(final_tempfile_path, 'rb').read()
 			final_video_file = ContentFile(final_video_data)
 			video.file.save(f'video_{video.id}.mp4', final_video_file)
 
-			'''
 			transcription = self.model.transcribe(audio_tempfile_path)
 			video.transcription = transcription['text']
 			video.save()
-			'''
 
 			self.clean(existing_tempfile_path, new_tempfile_path, final_tempfile_path)
 			return Response({'message':f'Video data successfully appended to {video_filename}'}, status=HTTP_200_OK)
